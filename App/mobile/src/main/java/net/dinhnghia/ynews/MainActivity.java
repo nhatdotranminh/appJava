@@ -10,12 +10,25 @@ import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonArrayRequest;
+import com.android.volley.toolbox.Volley;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
 
     ListView lvNews;
-    ArrayList<String> arrNews;
+    ArrayList<News> arrNews;
+    NewsAdapter adapter;
+    String urlGetNews = "https://jsonplaceholder.typicode.com/posts";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -24,30 +37,56 @@ public class MainActivity extends AppCompatActivity {
 
         lvNews = (ListView) findViewById(R.id.listviewNews);
         arrNews = new ArrayList<>();
-
-        arrNews.add("Công an vào cuộc vụ Chánh thanh tra Sở bị tố 'bảo kê' xe quá tải");
-        arrNews.add("Điều chỉnh quy hoạch xây dựng vùng TP.HCM");
-        arrNews.add("Tổng bí thư nêu 5 nhiệm vụ quan trọng của quân đội");
-        arrNews.add("Tài xế tông chết 4 người ở Thái Nguyên khai do phóng nhanh");
-
-        ArrayAdapter adapter = new ArrayAdapter(
-                MainActivity.this,
-                android.R.layout.simple_list_item_1,
-                arrNews
-        );
-
+        adapter = new NewsAdapter(this, R.layout.row_news, arrNews);
         lvNews.setAdapter(adapter);
+
         lvNews.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
                 //i => index of arrNews
-                Toast.makeText(MainActivity.this, "" + i, Toast.LENGTH_SHORT).show();
+                Log.d("VDN", arrNews.get(i).toString());
+                //Toast.makeText(MainActivity.this, arrNews.get(i), Toast.LENGTH_SHORT).show();
             }
         });
+
+        getNews(urlGetNews);
+        Log.d("VDN", arrNews.toString());
     }
 
-    private void XinChao (){
-        Log.d("VDN", "Xin chao");
+    private void getNews (String url){
+        RequestQueue requestQueue = Volley.newRequestQueue(this);
+        JsonArrayRequest jsonArrayRequest = new JsonArrayRequest(
+                Request.Method.GET,
+                url,
+                null,
+                new Response.Listener<JSONArray>() {
+                    @Override
+                    public void onResponse(JSONArray response) {
+                        for(int i = 0; i < response.length(); i++){
+                            try {
+                                JSONObject object = response.getJSONObject(i);
+                                arrNews.add(new News(
+                                    object.getInt("id"),
+                                    0,
+                                    0,
+                                    object.getString("title"),
+                                    object.getString("body")
+                                ));
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                        adapter.notifyDataSetChanged();
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        Toast.makeText(MainActivity.this, "Lỗi", Toast.LENGTH_SHORT).show();
+                    }
+                }
+        );
+        requestQueue.add(jsonArrayRequest);
     }
 
 
